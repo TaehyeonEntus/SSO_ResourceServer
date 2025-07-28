@@ -4,6 +4,7 @@
 # 인증
 
 - 본 리소스 서버는 **인증 서버**로부터 전달받은 **JWT Access Token**을 검증하여 사용자를 인증합니다.
+- Access Token 만료 시, Refresh Token으로 새로운 Access Token, Refresh Token을 발급 받을 수 있습니다.
 
 ### ✅ 검증 항목
 
