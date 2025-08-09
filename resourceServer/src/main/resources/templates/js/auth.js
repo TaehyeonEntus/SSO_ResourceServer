@@ -1,44 +1,56 @@
-export async function loadProtectedData(endpoint, resultId) {
+async function loadProtectedData(endpoint) {
+    const AUTH_SERVER_URL = "http://localhost:9000"
     try {
-        // 1차 요청 (access_token 포함된 쿠키 자동 전송됨)
         const res = await fetch(endpoint, {
             method: "GET",
-            credentials: "include" // 쿠키 전송 위해 필요
+            credentials: "include"
         });
 
+        //access 실패
         if (res.status === 401) {
-            // access token 만료 → refresh 시도
-            const refreshRes = await fetch("http://localhost:9000/token/refresh", {
-                method: "POST",
-                credentials: "include"
-            });
+            const errorData = await res.json();
 
-            if (refreshRes.ok) {
-                // 재요청
-                const retryRes = await fetch(endpoint, {
-                    method: "GET",
+            if (errorData.error === "access_token_error") {
+                const refreshRes = await fetch(AUTH_SERVER_URL + "/token/refresh", {
+                    method: "POST",
                     credentials: "include"
                 });
-
-                if (retryRes.ok) {
-                    const text = await retryRes.text();
-                    document.getElementById(resultId).innerText = text;
-                } else {
-                    window.location.href = "http://localhost:9000/login";
+                //refresh 성공
+                if (refreshRes.ok) {
+                    const retryRes = await fetch(endpoint, {
+                        method: "GET",
+                        credentials: "include"
+                    });
+                    //access 재시도 성공
+                    if (retryRes.ok) {
+                        const data = await retryRes.text();
+                        console.log("Data loaded:", data);
+                    }
+                    //access 재시도 실패
+                    else {
+                        window.location.href = AUTH_SERVER_URL + "/login";
+                    }
                 }
+                //refresh 실패
+                else {
+                    window.location.href = AUTH_SERVER_URL + "/login";
+                }
+
+            } else if (errorData.error === "refresh_token_error") {
+                window.location.href = AUTH_SERVER_URL + "/login";
             } else {
-                window.location.href = "http://localhost:9000/login";
+                console.error("Unauthorized access");
             }
 
-        } else if (res.ok) {
-            const text = await res.text();
-            document.getElementById(resultId).innerText = text;
+        }
+        //access 성공
+        else if (res.ok) {
+            const data = await res.text();
+            console.log("Data loaded:", data);
         } else {
-            // 기타 오류 처리
-            console.error("요청 실패:", res.status);
+            console.error(`Request failed with status: ${res.status}`);
         }
     } catch (error) {
-        console.error("요청 중 예외 발생:", error);
-        window.location.href = "http://localhost:9000/login";
+        console.error("Error during request:", error);
     }
 }
