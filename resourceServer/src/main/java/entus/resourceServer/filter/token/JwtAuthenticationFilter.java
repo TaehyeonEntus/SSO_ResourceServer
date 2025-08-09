@@ -1,10 +1,7 @@
 package entus.resourceServer.filter.token;
 
-import entus.resourceServer.exception.authentication.JwtAuthenticationException;
-import entus.resourceServer.exception.authentication.JwtExpiredException;
-import entus.resourceServer.exception.authentication.JwtSignatureException;
 import io.jsonwebtoken.*;
-import io.jsonwebtoken.security.SignatureException;
+import io.jsonwebtoken.security.Keys;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.Cookie;
@@ -21,8 +18,8 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import javax.crypto.SecretKey;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
-
 /**
  * 1. JWT 서명 검증
  * 2. JWT 만료 여부 검사
@@ -32,14 +29,14 @@ import java.util.List;
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final SecretKey secretKey;
 
-    public JwtAuthenticationFilter(@Value("${JWT_SECRET}") SecretKey secretKey) {
-        this.secretKey = secretKey;
+    public JwtAuthenticationFilter(@Value("${JWT_SECRET}") String secret) {
+        this.secretKey = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
     }
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
                                     HttpServletResponse response,
-                                    FilterChain filterChain) throws ServletException, IOException, SignatureException, ExpiredJwtException {
+                                    FilterChain filterChain) throws ServletException, IOException {
         Cookie[] cookies = request.getCookies();
         String accessToken = null;
         if (cookies != null)
@@ -54,36 +51,29 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             return;
         }
 
-        Jws<Claims> claimsJws;
+        Jws<Claims> claimsJws = null;
         String jwt = accessToken;
-
+        // 1. JWT 서명 검증
+        // 2. JWT 만료 여부 검사
         try {
-            // 1. JWT 서명 검증
-            // 2. JWT 만료 여부 검사
             claimsJws = Jwts.parser()
                     .verifyWith(secretKey)
                     .build()
                     .parseSignedClaims(jwt);
-
-            String userId = claimsJws.getPayload().getSubject();
-            String role = claimsJws.getPayload().get("role", String.class);
-
-            //FE에 제공 하기 위한 정보 (미 사용시 주석 처리)
-            //String name = claimsJws.getPayload().get("name", String.class);
-            //request.setAttribute("name", name);
-
-            // 3. 인증 정보 Security Context 등록 (접근 제한용)
-            List<GrantedAuthority> authorities = List.of(new SimpleGrantedAuthority("ROLE_" + role));
-            Authentication auth = new UsernamePasswordAuthenticationToken(userId, null, authorities);
-            SecurityContextHolder.getContext().setAuthentication(auth);
-
-        } catch (ExpiredJwtException e) {
-            throw new JwtExpiredException("JWT 토큰 만료", e);
-        } catch (SignatureException e) {
-            throw new JwtSignatureException("JWT 서명 오류", e);
         } catch (JwtException e) {
-            throw new JwtAuthenticationException("JWT 오류", e);
+            filterChain.doFilter(request, response);
         }
+        String userId = claimsJws.getPayload().getSubject();
+        String role = claimsJws.getPayload().get("role", String.class);
+
+        //FE에 제공 하기 위한 정보 (미 사용시 주석 처리)
+        //String name = claimsJws.getPayload().get("name", String.class);
+        //request.setAttribute("name", name);
+
+        // 3. 인증 정보 Security Context 등록 (접근 제한용)
+        List<GrantedAuthority> authorities = List.of(new SimpleGrantedAuthority("ROLE_" + role));
+        Authentication auth = new UsernamePasswordAuthenticationToken(userId, null, authorities);
+        SecurityContextHolder.getContext().setAuthentication(auth);
 
         filterChain.doFilter(request, response);
     }
