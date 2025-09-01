@@ -14,6 +14,7 @@ import java.util.Map;
 /**
  * 미인증 상태 요청 예외 핸들링
  */
+
 @Component
 public class CustomAuthenticationEntryPoint implements AuthenticationEntryPoint {
 

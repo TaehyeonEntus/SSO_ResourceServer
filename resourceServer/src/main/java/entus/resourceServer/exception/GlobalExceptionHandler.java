@@ -8,6 +8,10 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ *  비즈니스 로직에서 터지는 예외 핸들링
+ */
+
 @ControllerAdvice
 public class GlobalExceptionHandler {
     @ExceptionHandler({AccessTokenException.class})
