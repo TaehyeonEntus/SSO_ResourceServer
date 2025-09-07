@@ -18,7 +18,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Map<String, String>> handleAccessTokenException() {
         Map<String, String> body = new HashMap<>();
         body.put("error", "access_token_error");
-        body.put("message", "Access token is invalid or expired.");
+        body.put("message", "엑세스 토큰 오류");
         return ResponseEntity.status(HttpServletResponse.SC_UNAUTHORIZED).body(body);
     }
 }
