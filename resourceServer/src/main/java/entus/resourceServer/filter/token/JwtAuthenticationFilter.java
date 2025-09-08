@@ -45,8 +45,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     accessToken = cookie.getValue();
 
 
-        //잘못된 헤더를 보낸 사용자는 security context에 등록되지 않음, public API만 접근 가능
-        if (accessToken == null || accessToken.isEmpty()) {
+        //익명 사용자는 public paths만 접근 가능함~!
+        if (accessToken == null) {
             filterChain.doFilter(request, response);
             return;
         }
