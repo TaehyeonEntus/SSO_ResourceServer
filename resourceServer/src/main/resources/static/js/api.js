@@ -42,7 +42,9 @@ async function sendRequest(endpoint, options) {
     }
 
     // 공통 에러 처리
-    if (res.status === 401) {
+    if (res.status === 400) {
+        throw await res.json();
+    } else if (res.status === 401) {
         alert("인증된 사용자만 접근할 수 있습니다.");
         window.location.href = AUTH_SERVER_URL + "/login";
     } else if (res.status === 403) {
